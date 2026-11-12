@@ -1,34 +1,205 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>카카오맵</title>
-    <style>
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        #map {
-            width: 100%;
-            height: 100vh;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>캠핑맵 | 제주 여행 지도</title>
+  <style>
+    :root {
+      --forest: #245b47;
+      --forest-dark: #174232;
+      --mint: #e6f2e9;
+      --cream: #faf8f2;
+      --ink: #26342e;
+      --muted: #76827b;
+      --line: #e7eae3;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; margin: 0; }
+    body { font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif; color: var(--ink); }
+    button { font: inherit; cursor: pointer; }
+
+    .app { display: grid; grid-template-columns: 345px minmax(0, 1fr); height: 100vh; height: 100dvh; }
+
+    .sidebar {
+      display: flex; flex-direction: column; overflow-y: auto;
+      padding: 30px 24px; background: var(--cream); border-right: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 19px; font-weight: 800; letter-spacing: -0.5px; }
+    .brand-icon {
+      width: 39px; height: 39px; display: grid; place-items: center; border-radius: 13px;
+      background: var(--forest); color: #fff; font-size: 19px;
+    }
+    .eyebrow { margin: 44px 0 12px; font-size: 12px; font-weight: 800; letter-spacing: 1.8px; color: var(--forest); }
+    h1 { margin: 0; font-size: 32px; line-height: 1.32; letter-spacing: -1.2px; }
+    h1 span { color: var(--forest); }
+    .description { margin: 15px 0 28px; font-size: 14px; line-height: 1.8; color: var(--muted); }
+
+    .section-heading { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; }
+    .section-heading strong { font-size: 15px; }
+    .count { padding: 5px 10px; border-radius: 99px; font-size: 11px; font-weight: 800; color: var(--forest); background: var(--mint); }
+    .places { display: grid; gap: 10px; }
+    .place {
+      width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px;
+      background: #fff; border: 1px solid var(--line); border-radius: 16px;
+      text-align: left; transition: border-color .2s, transform .2s, box-shadow .2s;
+    }
+    .place:hover { transform: translateY(-2px); border-color: #a3c7b3; box-shadow: 0 7px 20px #1e4e3912; }
+    .place.active { border-color: var(--forest); background: #f4faf6; }
+    .place-icon {
+      flex: none; display: grid; place-items: center; width: 45px; height: 45px;
+      background: var(--mint); border-radius: 13px; font-size: 21px;
+    }
+    .place-details { flex: 1; min-width: 0; }
+    .place-details strong { display: block; margin-bottom: 5px; font-size: 14px; }
+    .place-details small { color: var(--muted); font-size: 12px; }
+    .chevron { color: #9eaaa3; font-size: 20px; }
+
+    .reset {
+      width: 100%; margin-top: 17px; padding: 13px; border: 0; border-radius: 12px;
+      background: var(--forest); color: #fff; font-size: 13px; font-weight: 700;
+    }
+    .reset:hover { background: var(--forest-dark); }
+    .footer { margin-top: auto; padding-top: 28px; color: #9aa49b; font-size: 11px; line-height: 1.7; }
+
+    .map-area { position: relative; min-width: 0; min-height: 0; background: #e8f0e9; }
+    #map { width: 100%; height: 100%; }
+    .map-heading {
+      position: absolute; z-index: 2; top: 24px; left: 24px; pointer-events: none;
+      padding: 13px 17px; border: 1px solid #ffffffaa; border-radius: 14px;
+      background: #ffffffeb; box-shadow: 0 10px 35px #1a33291c;
+      backdrop-filter: blur(9px);
+    }
+    .map-heading strong { display: block; font-size: 14px; }
+    .map-heading small { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .map-tip {
+      position: absolute; z-index: 2; bottom: 24px; right: 24px; pointer-events: none;
+      padding: 11px 15px; border-radius: 12px; background: #fff; color: #63726a;
+      box-shadow: 0 8px 26px #1a33291a; font-size: 12px;
+    }
+    .map-error { display: grid; place-items: center; height: 100%; padding: 30px; text-align: center; color: #4c6257; }
+
+    @media (max-width: 800px) {
+      .app { display: flex; flex-direction: column; height: auto; min-height: 100dvh; }
+      .sidebar { padding: 22px 18px; overflow: visible; border-right: 0; }
+      .eyebrow { margin-top: 26px; }
+      h1 { font-size: 27px; }
+      .description { margin-bottom: 22px; }
+      .places { grid-template-columns: 1fr; }
+      .footer { display: none; }
+      .map-area { height: 60vh; height: 60dvh; min-height: 420px; }
+      .map-heading { top: 13px; left: 13px; padding: 10px 13px; }
+      .map-tip { right: 13px; bottom: 13px; }
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
+  <main class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-icon">⛺</div> CAMP MAP</div>
+      <p class="eyebrow">DISCOVER JEJU</p>
+      <h1>지도에서 찾는<br><span>나만의 여행지.</span></h1>
+      <p class="description">제주의 멋진 장소를 지도에서 살펴보세요.<br>장소를 누르면 지도가 해당 위치로 이동합니다.</p>
 
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=c7381fd36c22324294c57f0f9fc3495d"></script>
-    <script>
-        const mapContainer = document.getElementById('map');
-        const mapOption = {
-            center: new kakao.maps.LatLng(33.450701, 126.570667),
-            level: 3
-        };
+      <div class="section-heading"><strong>추천 장소</strong><span class="count">3 PLACES</span></div>
+      <div class="places">
+        <button class="place" data-index="0" type="button" aria-pressed="false">
+          <span class="place-icon">🌊</span>
+          <span class="place-details"><strong>협재해수욕장</strong><small>제주시 한림읍 · 바다</small></span>
+          <span class="chevron">›</span>
+        </button>
+        <button class="place" data-index="1" type="button" aria-pressed="false">
+          <span class="place-icon">🚗</span>
+          <span class="place-details"><strong>애월 해안도로</strong><small>제주시 애월읍 · 드라이브</small></span>
+          <span class="chevron">›</span>
+        </button>
+        <button class="place" data-index="2" type="button" aria-pressed="false">
+          <span class="place-icon">⛰️</span>
+          <span class="place-details"><strong>성산일출봉</strong><small>서귀포시 성산읍 · 자연</small></span>
+          <span class="chevron">›</span>
+        </button>
+      </div>
+      <button class="reset" id="reset" type="button">제주 전체 지도 보기</button>
+      <p class="footer">CAMP MAP · 카카오맵 API 데모<br>장소 좌표는 디자인 테스트를 위한 예시입니다.</p>
+    </aside>
 
-        const map = new kakao.maps.Map(mapContainer, mapOption);
-    </script>
+    <section class="map-area" aria-label="제주 여행 지도">
+      <div id="map"></div>
+      <div class="map-heading"><strong id="selected-title">제주 여행 지도</strong><small id="selected-subtitle">마커 또는 왼쪽 장소를 선택해 보세요</small></div>
+      <div class="map-tip">마우스 드래그 · 확대/축소 가능</div>
+    </section>
+  </main>
+
+  <!-- 이 값을 카카오 개발자 콘솔의 JavaScript 키로 변경하세요. -->
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=c7381fd36c22324294c57f0f9fc3495d"></script>
+  <script>
+    const places = [
+      { name: '협재해수욕장', detail: '푸른 바다와 고운 모래', lat: 33.3940, lng: 126.2393 },
+      { name: '애월 해안도로', detail: '바다를 따라 달리는 드라이브', lat: 33.4665, lng: 126.3226 },
+      { name: '성산일출봉', detail: '제주 동쪽의 아름다운 풍경', lat: 33.4581, lng: 126.9425 }
+    ];
+
+    const mapElement = document.getElementById('map');
+    const cards = [...document.querySelectorAll('.place')];
+    let map;
+    let markers = [];
+    let openInfoWindow = null;
+
+    function activateCard(index) {
+      cards.forEach((card, i) => {
+        card.classList.toggle('active', index === i);
+        card.setAttribute('aria-pressed', String(index === i));
+      });
+    }
+
+    function selectPlace(index) {
+      if (!map) return;
+      const place = places[index];
+      const marker = markers[index];
+      if (openInfoWindow) openInfoWindow.close();
+      map.setLevel(5);
+      map.panTo(marker.getPosition());
+      const info = new kakao.maps.InfoWindow({
+        content: '<div style="padding:9px 14px;font-size:13px;white-space:nowrap;font-weight:bold">' + place.name + '</div>'
+      });
+      info.open(map, marker);
+      openInfoWindow = info;
+      document.getElementById('selected-title').textContent = place.name;
+      document.getElementById('selected-subtitle').textContent = place.detail;
+      activateCard(index);
+    }
+
+    function resetMap() {
+      if (!map) return;
+      if (openInfoWindow) openInfoWindow.close();
+      map.setLevel(10);
+      map.panTo(new kakao.maps.LatLng(33.45, 126.57));
+      activateCard(-1);
+      document.getElementById('selected-title').textContent = '제주 여행 지도';
+      document.getElementById('selected-subtitle').textContent = '마커 또는 왼쪽 장소를 선택해 보세요';
+    }
+
+    cards.forEach((card, index) => card.addEventListener('click', () => selectPlace(index)));
+    document.getElementById('reset').addEventListener('click', resetMap);
+
+    if (window.kakao && kakao.maps) {
+      kakao.maps.load(() => {
+        map = new kakao.maps.Map(mapElement, {
+          center: new kakao.maps.LatLng(33.45, 126.57), level: 10
+        });
+        markers = places.map((place, index) => {
+          const marker = new kakao.maps.Marker({
+            map, position: new kakao.maps.LatLng(place.lat, place.lng)
+          });
+          kakao.maps.event.addListener(marker, 'click', () => selectPlace(index));
+          return marker;
+        });
+        window.addEventListener('resize', () => map.relayout());
+      });
+    } else {
+      mapElement.innerHTML = '<div class="map-error">지도를 불러오지 못했습니다.<br>JavaScript 키와 허용 도메인을 확인하세요.</div>';
+    }
+  </script>
 </body>
 </html>
